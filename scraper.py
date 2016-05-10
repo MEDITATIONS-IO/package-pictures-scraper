@@ -38,12 +38,59 @@ def parse_package_info(dom):
 
 def get_package_pics(dom):
     """Crawl inside package to acquire images."""
-    pass
+    stem = 'http://pictures.reuters.com'
+    hyperlinks = dom.select('a[href*="Package/"]')
+    payload = []
 
+    for hyperlink in hyperlinks:
+        count += 1
+        uri = '%s/%s' % (stem, hyperlink['href'])
+        print('Fetching data for %s' % uri)
+
+        res = requests.get(uri)
+        dom = BeautifulSoup(res.text, 'lxml')
+
+        # Result for this badboy.
+        result = None
+
+        # Get metadata.
+        try:
+            panel = dom.select('[id*="MainPnl"]')[0]
+            id = panel.select('[id*="Identifier_Lbl"]')[0].text
+            date = panel.select('[id*="DocDate_Lbl"]')[0].text
+            caption = panel.select('[id*="CaptionLong_Lbl"]')[0].text
+            result = {
+                'id': id,
+                'date': date,
+                'caption': caption
+            }
+        except Exception as e:
+            print(e)
+
+        # Get image URL.
+        # Find enough data to trigger a popup. Follow the link.
+        # Scrape the image there.
+        popup_link = dom.select('a[target*="_MatrixPopup"]')
+        try:
+            href = popup_link[0]['href']
+            uri = '%s/%s' % (stem, href)
+            res = requests.get(uri)
+            dom = BeautifulSoup(res.text, 'lxml')
+
+            img = dom.select('[id*="I_img"]')[2]['src']
+            img = '%s%s' % (stem, img)
+
+            result['img'] = img
+        except Exception as e:
+            print(e)
+
+        payload.append(result)
+
+    return payload
 
 payload = []
 
-for i in range(num_page):
+for i in range(1):
     pn = i + 1
     res = requests.get('%s&PN=%s' % (raw_url, pn))
     dom = BeautifulSoup(res.text, 'lxml')
