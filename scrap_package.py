@@ -74,11 +74,12 @@ def print_csv(data):
 
 if __name__ == '__main__':
     try:
-        package_ids = [sys.argv[1]]
+        package_ids = sys.argv[1:]
     except:
         package_ids = ["2C0408TFYF7UZ", "2C0BF1FZJAJAJ", "2C0408WHSULP3"]
     imgs = []
     cache = {}
+    listpackages = list(package_ids)
     for pid in package_ids:
         imgs += get_images_list(pid, cache)
     print_csv(imgs)
