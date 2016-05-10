@@ -7,11 +7,20 @@
 
 import sys, requests, re
 
-def get_images_list(package_id):
+
+def get_images_list(package_id, cache={}):
     req = requests.get("http://pictures.reuters.com/Package/%s" % package_id)
     imgs = re.findall(r'<a href="archive/([^"]+?).html', req.text)
-    return [get_image(i) for i in set(imgs)]
-
+    res = []
+    for i in set(imgs):
+        if i not in cache:
+            img = get_image(i)
+            if img["id"] in cache:
+                continue
+            cache[i] = True
+            cache[img["id"]] = True
+            res.append(img)
+    return res
 
 fields = [
     ("url", re.compile(r'I_img" src="([^"]+)" onerror'), lambda x: "http://pictures.reuters.com" + x),
@@ -60,12 +69,16 @@ def format_field(row, field):
 def print_csv(data):
     headers = "id,sysid,url,source,date,location,author,description,keywords_ids,keywords,packages_ids,packages"
     print headers
-    for row in data:
+    for row in sorted(data, key=lambda x: x['id']):
         print ",".join([format_csv(row, h).encode('utf-8') for h in headers.split(',')])
 
 if __name__ == '__main__':
     try:
-        package_id = sys.argv[1]
+        package_ids = [sys.argv[1]]
     except:
-        package_id = "2C0408TFYF7UZ"
-    print_csv(get_images_list(package_id))
+        package_ids = ["2C0408TFYF7UZ", "2C0BF1FZJAJAJ", "2C0408WHSULP3"]
+    imgs = []
+    cache = {}
+    for pid in package_ids:
+        imgs += get_images_list(pid, cache)
+    print_csv(imgs)
