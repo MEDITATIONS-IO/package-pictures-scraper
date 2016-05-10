@@ -9,7 +9,8 @@ import sys, requests, re
 
 def get_images_list(package_id):
     req = requests.get("http://pictures.reuters.com/Package/%s" % package_id)
-    return [get_image(i) for i in set(re.findall(r'<a href="archive/([^"]+?).html', req.text))]
+    imgs = re.findall(r'<a href="archive/([^"]+?).html', req.text)
+    return [get_image(i) for i in set(imgs)]
 
 
 fields = [
@@ -43,13 +44,28 @@ def get_image(img_id):
     metas["keywords"] = re_keywords.findall(req.text)
     metas["packages"] = re_packages.findall(req.text)
 
-    from pprint import pprint
-    pprint(metas)
     return metas
+
+def format_csv(row, field):
+    val = format_field(row, field)
+    return '"%s"' % val.replace('"', '""') if (',' in val or '"' in val) else val
+
+def format_field(row, field):
+    if field not in row and field.endswith("_ids"):
+        return "|".join([a for a, b in row[field[:-4]]])
+    if field.endswith('s'):
+        return "|".join([b for a, b in row[field]])
+    return row[field]
+
+def print_csv(data):
+    headers = "id,sysid,url,source,date,location,author,description,keywords_ids,keywords,packages_ids,packages"
+    print headers
+    for row in data:
+        print ",".join([format_csv(row, h).encode('utf-8') for h in headers.split(',')])
 
 if __name__ == '__main__':
     try:
         package_id = sys.argv[1]
     except:
         package_id = "2C0408TFYF7UZ"
-    get_images_list(package_id)
+    print_csv(get_images_list(package_id))
