@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 """Crawl and scrape Reuters image packages."""
+import json
 import requests
 from bs4 import BeautifulSoup
 
 url = 'http://pictures.reuters.com/C.aspx?VP3=SearchResult&VBID=\
 2C0BXZ3HH3DOG&SMLS=1&RW=1280&RH=678&PN=1'
+
+filename = 'test.json'
 
 # Get first page: search result.
 res = requests.get(url)
@@ -42,49 +45,51 @@ def get_package_pics(dom):
     hyperlinks = dom.select('a[href*="Package/"]')
     payload = []
 
+    count = 0
     for hyperlink in hyperlinks:
-        count += 1
-        uri = '%s/%s' % (stem, hyperlink['href'])
-        print('Fetching data for %s' % uri)
+        if count < 1:
+            count += 1
+            uri = '%s/%s' % (stem, hyperlink['href'])
+            print('Fetching data for %s' % uri)
 
-        res = requests.get(uri)
-        dom = BeautifulSoup(res.text, 'lxml')
-
-        # Result for this badboy.
-        result = None
-
-        # Get metadata.
-        try:
-            panel = dom.select('[id*="MainPnl"]')[0]
-            id = panel.select('[id*="Identifier_Lbl"]')[0].text
-            date = panel.select('[id*="DocDate_Lbl"]')[0].text
-            caption = panel.select('[id*="CaptionLong_Lbl"]')[0].text
-            result = {
-                'id': id,
-                'date': date,
-                'caption': caption
-            }
-        except Exception as e:
-            print(e)
-
-        # Get image URL.
-        # Find enough data to trigger a popup. Follow the link.
-        # Scrape the image there.
-        popup_link = dom.select('a[target*="_MatrixPopup"]')
-        try:
-            href = popup_link[0]['href']
-            uri = '%s/%s' % (stem, href)
             res = requests.get(uri)
             dom = BeautifulSoup(res.text, 'lxml')
 
-            img = dom.select('[id*="I_img"]')[2]['src']
-            img = '%s%s' % (stem, img)
+            # Result for this badboy.
+            result = None
 
-            result['img'] = img
-        except Exception as e:
-            print(e)
+            # Get metadata.
+            try:
+                panel = dom.select('[id*="MainPnl"]')[0]
+                id = panel.select('[id*="Identifier_Lbl"]')[0].text
+                date = panel.select('[id*="DocDate_Lbl"]')[0].text
+                caption = panel.select('[id*="CaptionLong_Lbl"]')[0].text
+                result = {
+                    'id': id,
+                    'date': date,
+                    'caption': caption
+                }
+            except Exception as e:
+                print(e)
 
-        payload.append(result)
+            # Get image URL.
+            # Find enough data to trigger a popup. Follow the link.
+            # Scrape the image there.
+            popup_link = dom.select('a[target*="_MatrixPopup"]')
+            try:
+                href = popup_link[0]['href']
+                uri = '%s/%s' % (stem, href)
+                res = requests.get(uri)
+                dom = BeautifulSoup(res.text, 'lxml')
+
+                img = dom.select('[id*="I_img"]')[0]['src']
+                img = '%s%s' % (stem, img)
+
+                result['img'] = img
+            except Exception as e:
+                print(e)
+
+            payload.append(result)
 
     return payload
 
@@ -98,4 +103,5 @@ for i in range(1):
     pics = get_package_pics(dom)
     payload.append({'info': info, 'pics': pics})
 
-print(payload)
+with open(filename, 'w') as json_file:
+    json.dump(payload, json_file)
