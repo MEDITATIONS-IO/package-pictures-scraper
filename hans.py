@@ -1,13 +1,17 @@
 # -*- coding: utf-8 -*-
 """Crawl and scrape Reuters image packages."""
+import sys
 import json
 import requests
 from bs4 import BeautifulSoup
 
-url = 'http://pictures.reuters.com/C.aspx?VP3=SearchResult&VBID=\
-2C0BXZ3HH3DOG&SMLS=1&RW=1280&RH=678&PN=1'
+debug = False
+url = sys.argv[1]
+filename = sys.argv[2]
 
-filename = 'test.json'
+# url = 'http://pictures.reuters.com/C.aspx?VP3=SearchResult&VBID=\
+# 2C0BXZ3HH3DOG&SMLS=1&RW=1280&RH=678&PN=1'
+# filename = 'test.json'
 
 # Get first page: search result.
 res = requests.get(url)
