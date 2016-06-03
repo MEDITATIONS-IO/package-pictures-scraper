@@ -7,8 +7,8 @@
 
 import sys, requests, re
 
-
 def get_images_list(package_id, cache={}):
+    print >> sys.stderr, package_id
     req = requests.get("http://pictures.reuters.com/Package/%s" % package_id)
     imgs = re.findall(r'<a href="archive/([^"]+?).html', req.text)
     res = []
@@ -44,11 +44,16 @@ def get_image(img_id):
 
     for fieldname, regexp, freduce in fields:
         res = regexp.search(req.text)
-        if not res.groups():
-            continue
+
+        if not res:
+            found = ""
+        else:
+            found = res.group(1)
+
         if not freduce:
             freduce = lambda x: x
-        metas[fieldname] = freduce(res.group(1))
+
+        metas[fieldname] = freduce(found)
 
     metas["keywords"] = re_keywords.findall(req.text)
     metas["packages"] = re_packages.findall(req.text)
